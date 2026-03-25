@@ -1,0 +1,10 @@
+{
+  "$schema": "https://rork.com/schema/rork.json",
+  "apps": [
+    {
+      "name": "The Beautiful Game",
+      "path": "ios",
+      "framework": "swift"
+    }
+  ]
+}
