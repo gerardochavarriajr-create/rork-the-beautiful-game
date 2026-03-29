@@ -156,6 +156,7 @@ struct DatabaseGenerator {
             stamina: attr(isMid ? 5 : 0),
             strength: attr(isDef ? 3 : position == .ST ? 3 : -2),
             fitness: attr(0),
+            naturalFitness: attr(0),
             aggression: attr(isDef ? 3 : -2),
             anticipation: attr(2),
             composure: attr(isAtt ? 3 : 0),

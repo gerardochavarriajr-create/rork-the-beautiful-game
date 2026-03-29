@@ -86,13 +86,20 @@ class GameManager {
         return (top.shortName, top.seasonStats.goals)
     }
 
+    /// Available leagues — tries real database first, falls back to procedural generation
+    var availableLeagues: [LeagueInfo] {
+        DatabaseLoader.loadLeagues() ?? DatabaseGenerator.generateLeagues()
+    }
+
     func startCareer(leagueID: String, clubID: String, manager: String) {
         selectedLeagueID = leagueID
         userClubID = clubID
         managerName = manager
 
-        let leagueInfo = DatabaseGenerator.generateLeagues().first { $0.id == leagueID }!
-        var leagueData = DatabaseGenerator.generateLeagueData(for: leagueInfo)
+        let leagueInfo = availableLeagues.first { $0.id == leagueID }!
+        // Try loading real database; fall back to procedural generation
+        var leagueData = DatabaseLoader.loadLeagueData(for: leagueInfo)
+            ?? DatabaseGenerator.generateLeagueData(for: leagueInfo)
 
         if let idx = leagueData.clubs.firstIndex(where: { $0.id == clubID }) {
             leagueData.clubs[idx].manager = ClubManager(name: manager, nationality: "England")
@@ -217,50 +224,70 @@ class GameManager {
         update(away, gf: awayGoals, ga: homeGoals, isWin: awayGoals > homeGoals, isDraw: isDraw)
     }
 
+    /// FM14-calibrated goal simulation for AI vs AI matches.
+    /// Uses home advantage (1.15x from LiveTicker.txt) and prestige-weighted Poisson-like distribution.
     private func simulateGoals(prestige: Int, isHome: Bool) -> Int {
-        let base = Double(prestige) * 0.15 + (isHome ? 0.3 : 0.0)
-        let goals = Int(base + Double.random(in: -0.5...1.5))
+        // FM14 home advantage: 1.15x multiplier
+        let homeMultiplier = isHome ? 1.15 : 1.0
+        // Expected goals based on prestige (1-10 scale)
+        // Prestige 10 team expects ~2.0 goals, prestige 4 expects ~0.8
+        let lambda = Double(prestige) * 0.18 * homeMultiplier + Double.random(in: -0.3...0.3)
+        // Simple Poisson-like approximation
+        let goals = Int(lambda + Double.random(in: -0.5...1.2))
         return max(0, min(6, goals))
     }
 
     private func applyTrainingEffects() {
         guard var club = userClub else { return }
-        for i in 0..<club.players.count {
-            let change = Int.random(in: -1...2)
-            club.players[i].currentFitness = min(100, max(40, club.players[i].currentFitness + change))
-        }
+        // Use FM14 training engine — applies attribute-specific growth based on weekly schedule
+        club.players = FM14TrainingEngine.applyWeeklyTraining(
+            players: club.players,
+            weeklySchedule: trainingSchedule,
+            teamPrestige: club.prestige
+        )
         userClub = club
     }
 
     private func processInjuries() {
         guard var club = userClub else { return }
-        for i in 0..<club.players.count {
-            if club.players[i].isInjured {
-                if let weeks = club.players[i].injuryWeeksRemaining, weeks <= 1 {
-                    club.players[i].isInjured = false
-                    club.players[i].injuryDescription = nil
-                    club.players[i].injuryWeeksRemaining = nil
-                } else if let weeks = club.players[i].injuryWeeksRemaining {
-                    club.players[i].injuryWeeksRemaining = weeks - 1
-                }
-            } else if Int.random(in: 0...100) < 3 {
-                let injuries = ["Hamstring strain", "Ankle sprain", "Knee injury", "Calf strain", "Groin injury"]
-                club.players[i].isInjured = true
-                club.players[i].injuryDescription = injuries.randomElement()!
-                club.players[i].injuryWeeksRemaining = Int.random(in: 1...6)
-                addNews(NewsArticle(
-                    id: UUID().uuidString,
-                    headline: "INJURY BLOW: \(club.players[i].fullName) out for \(club.players[i].injuryWeeksRemaining!) weeks",
-                    subheadline: club.players[i].injuryDescription,
-                    body: "\(club.name) have confirmed that \(club.players[i].fullName) has suffered a \(club.players[i].injuryDescription?.lowercased() ?? "injury") and will be out for approximately \(club.players[i].injuryWeeksRemaining!) weeks.",
-                    date: "Week \(currentWeek)",
-                    source: "Club Medical Staff",
-                    type: .injury,
-                    isRead: false,
-                    week: currentWeek
-                ))
+
+        // Calculate training intensity from weekly schedule
+        let restDays = trainingSchedule.filter { $0 == .rest }.count
+        let intensity = restDays >= 3 ? 0.7 : (restDays >= 2 ? 0.85 : (restDays >= 1 ? 1.0 : 1.3))
+
+        // FM14 injury engine: 48 real injury types, age/fitness/naturalFitness-weighted
+        let hadMatch = currentWeekFixtures.contains { $0.homeTeam == club.name || $0.awayTeam == club.name }
+        let result = FM14InjuryEngine.processWeekly(
+            players: club.players,
+            trainingIntensity: intensity,
+            hadMatchThisWeek: hadMatch
+        )
+
+        club.players = result.players
+
+        // Generate news for each new injury
+        for (playerName, injury, weeks) in result.newInjuries {
+            let severityText: String
+            switch injury.severity {
+            case 0: severityText = "Minor setback"
+            case 1: severityText = "Injury concern"
+            case 2: severityText = "INJURY BLOW"
+            default: severityText = "DEVASTATING BLOW"
             }
+
+            addNews(NewsArticle(
+                id: UUID().uuidString,
+                headline: "\(severityText): \(playerName) out for \(weeks) \(weeks == 1 ? "week" : "weeks")",
+                subheadline: injury.name,
+                body: "\(club.name) have confirmed that \(playerName) has suffered \(injury.name.hasPrefix("A") || injury.name.hasPrefix("I") || injury.name.hasPrefix("E") ? "an" : "a") \(injury.name.lowercased()) and will be out for approximately \(weeks) \(weeks == 1 ? "week" : "weeks"). \(injury.severity >= 2 ? "This is a significant blow to the squad's options." : "The player is expected to make a full recovery.")",
+                date: "Week \(currentWeek)",
+                source: "Club Medical Staff",
+                type: .injury,
+                isRead: false,
+                week: currentWeek
+            ))
         }
+
         userClub = club
     }
 

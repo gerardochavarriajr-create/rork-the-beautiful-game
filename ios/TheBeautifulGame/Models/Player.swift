@@ -23,6 +23,7 @@ nonisolated struct PlayerAttributes: Codable, Sendable, Hashable {
     var stamina: Int
     var strength: Int
     var fitness: Int
+    var naturalFitness: Int
 
     var aggression: Int
     var anticipation: Int
@@ -45,13 +46,59 @@ nonisolated struct PlayerAttributes: Codable, Sendable, Hashable {
     var reflexes: Int
     var rushingOut: Int
 
+    // Backward-compatible decoding for saves created before naturalFitness was added
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        ballControl = try c.decode(Int.self, forKey: .ballControl)
+        crossing = try c.decode(Int.self, forKey: .crossing)
+        dribbling = try c.decode(Int.self, forKey: .dribbling)
+        finishing = try c.decode(Int.self, forKey: .finishing)
+        heading = try c.decode(Int.self, forKey: .heading)
+        longShots = try c.decode(Int.self, forKey: .longShots)
+        marking = try c.decode(Int.self, forKey: .marking)
+        passing = try c.decode(Int.self, forKey: .passing)
+        setPieces = try c.decode(Int.self, forKey: .setPieces)
+        shotPower = try c.decode(Int.self, forKey: .shotPower)
+        tackling = try c.decode(Int.self, forKey: .tackling)
+        technique = try c.decode(Int.self, forKey: .technique)
+        throwing = try c.decode(Int.self, forKey: .throwing)
+        acceleration = try c.decode(Int.self, forKey: .acceleration)
+        agility = try c.decode(Int.self, forKey: .agility)
+        balance = try c.decode(Int.self, forKey: .balance)
+        jumping = try c.decode(Int.self, forKey: .jumping)
+        pace = try c.decode(Int.self, forKey: .pace)
+        stamina = try c.decode(Int.self, forKey: .stamina)
+        strength = try c.decode(Int.self, forKey: .strength)
+        fitness = try c.decode(Int.self, forKey: .fitness)
+        naturalFitness = try c.decodeIfPresent(Int.self, forKey: .naturalFitness) ?? fitness
+        aggression = try c.decode(Int.self, forKey: .aggression)
+        anticipation = try c.decode(Int.self, forKey: .anticipation)
+        composure = try c.decode(Int.self, forKey: .composure)
+        concentration = try c.decode(Int.self, forKey: .concentration)
+        creativity = try c.decode(Int.self, forKey: .creativity)
+        decisions = try c.decode(Int.self, forKey: .decisions)
+        determination = try c.decode(Int.self, forKey: .determination)
+        flair = try c.decode(Int.self, forKey: .flair)
+        leadership = try c.decode(Int.self, forKey: .leadership)
+        positioning = try c.decode(Int.self, forKey: .positioning)
+        workRate = try c.decode(Int.self, forKey: .workRate)
+        aerialAbility = try c.decode(Int.self, forKey: .aerialAbility)
+        commandOfArea = try c.decode(Int.self, forKey: .commandOfArea)
+        communication = try c.decode(Int.self, forKey: .communication)
+        handling = try c.decode(Int.self, forKey: .handling)
+        kicking = try c.decode(Int.self, forKey: .kicking)
+        oneOnOnes = try c.decode(Int.self, forKey: .oneOnOnes)
+        reflexes = try c.decode(Int.self, forKey: .reflexes)
+        rushingOut = try c.decode(Int.self, forKey: .rushingOut)
+    }
+
     var technicalAverage: Double {
         let vals = [ballControl, crossing, dribbling, finishing, heading, longShots, marking, passing, setPieces, shotPower, tackling, technique, throwing]
         return Double(vals.reduce(0, +)) / Double(vals.count)
     }
 
     var physicalAverage: Double {
-        let vals = [acceleration, agility, balance, jumping, pace, stamina, strength, fitness]
+        let vals = [acceleration, agility, balance, jumping, pace, stamina, strength, fitness, naturalFitness]
         return Double(vals.reduce(0, +)) / Double(vals.count)
     }
 
