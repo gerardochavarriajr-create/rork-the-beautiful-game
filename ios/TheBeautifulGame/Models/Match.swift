@@ -1,7 +1,7 @@
 import Foundation
 
 nonisolated enum MatchEventType: String, Codable, Sendable, Hashable {
-    case goal, shot, save, yellowCard, redCard, substitution, injury
+    case goal, shot, save, yellowCard, redCard, substitution, injury, foul
     case offside, corner, freeKick, penalty, halftime, fulltime, kickoff
 
     var icon: String {
@@ -20,12 +20,13 @@ nonisolated enum MatchEventType: String, Codable, Sendable, Hashable {
         case .halftime: "⏸️"
         case .fulltime: "🏁"
         case .kickoff: "⚽"
+        case .foul: "⚠️"
         }
     }
 
     var isKeyEvent: Bool {
         switch self {
-        case .goal, .yellowCard, .redCard, .injury, .penalty: true
+        case .goal, .yellowCard, .redCard, .injury, .penalty, .foul: true
         default: false
         }
     }

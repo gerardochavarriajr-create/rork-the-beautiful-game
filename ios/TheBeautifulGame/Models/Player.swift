@@ -46,7 +46,35 @@ nonisolated struct PlayerAttributes: Codable, Sendable, Hashable {
     var reflexes: Int
     var rushingOut: Int
 
-    // Backward-compatible decoding for saves created before naturalFitness was added
+    init(
+        ballControl: Int, crossing: Int, dribbling: Int, finishing: Int, heading: Int,
+        longShots: Int, marking: Int, passing: Int, setPieces: Int, shotPower: Int,
+        tackling: Int, technique: Int, throwing: Int,
+        acceleration: Int, agility: Int, balance: Int, jumping: Int, pace: Int,
+        stamina: Int, strength: Int, fitness: Int, naturalFitness: Int,
+        aggression: Int, anticipation: Int, composure: Int, concentration: Int,
+        creativity: Int, decisions: Int, determination: Int, flair: Int,
+        leadership: Int, positioning: Int, workRate: Int,
+        aerialAbility: Int, commandOfArea: Int, communication: Int,
+        handling: Int, kicking: Int, oneOnOnes: Int, reflexes: Int, rushingOut: Int
+    ) {
+        self.ballControl = ballControl; self.crossing = crossing; self.dribbling = dribbling
+        self.finishing = finishing; self.heading = heading; self.longShots = longShots
+        self.marking = marking; self.passing = passing; self.setPieces = setPieces
+        self.shotPower = shotPower; self.tackling = tackling; self.technique = technique
+        self.throwing = throwing
+        self.acceleration = acceleration; self.agility = agility; self.balance = balance
+        self.jumping = jumping; self.pace = pace; self.stamina = stamina
+        self.strength = strength; self.fitness = fitness; self.naturalFitness = naturalFitness
+        self.aggression = aggression; self.anticipation = anticipation; self.composure = composure
+        self.concentration = concentration; self.creativity = creativity; self.decisions = decisions
+        self.determination = determination; self.flair = flair; self.leadership = leadership
+        self.positioning = positioning; self.workRate = workRate
+        self.aerialAbility = aerialAbility; self.commandOfArea = commandOfArea
+        self.communication = communication; self.handling = handling; self.kicking = kicking
+        self.oneOnOnes = oneOnOnes; self.reflexes = reflexes; self.rushingOut = rushingOut
+    }
+
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         ballControl = try c.decode(Int.self, forKey: .ballControl)
